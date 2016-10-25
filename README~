@@ -1,0 +1,123 @@
+####################
+# gene2annot v 0.1 #
+####################
+
+GENE2ANNOT is a functional gene annotation pipeline that combines the fast DIAMOND mapping environment (https://github.com/bbuchfink/diamond) together with prodigal gene finder (http://prodigal.ornl.gov/). In addition, GENE2ANNOT uses release 28 of Pfam database (ftp://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam28.0/Pfam-A.fasta.gz) converted to binary Kyoto Cabinet (http://fallabs.com/kyotocabinet/) database for faster performance.
+
+################
+# Installation #
+################
+
+Simply decompress gene2annot.tar.gz to a desired directory.
+
+$ tar -xvzf gene2annot.tar.gz
+
+#########
+# Usage #
+#########
+
+1) Set the gene2annot executable directory - Open the file gene2annot.pl with a text editor of your choice. Find $ENV{GAP} = "/home/people/s142495/project/gene2annot"; (line 6) and write the path to your gene2annot directory.
+
+Example:
+
+$ $ENV{GAP} = "/home/usr/dir/gene2annot";
+
+2) Gene2annot is diamond dependable. Diamond can be downloaded from the link above. After completing the installation change the path to diamond executable (line 36).
+
+Example:
+
+$ $prog_diamond = "/path-to-diamond/bin/diamond";
+
+3) IMPORTANT - the following modules are required in order to run gene2annot.pl: 
+
+$ module load tools torque moab/8.1.1 perl/5.20.1
+
+4) Run gene2annot.pl.
+
+Example (with default settings):
+
+$ xqsub -V -d /path-to-fasta-contig-file -l nodes=1:ppn=4,mem=30gb,walltime=1:00:00:00 -de /path-to-gene2annot/gene2annot.pl -i file.fasta -l logfile -d workingDir
+
+Remark: The file run.sh is a shell script that combines step 2 and 3. In order to run gene2annot.pl via run.sh, open run.sh with a text editor of your choice and change the settings by your means. Then execute:
+
+$ ./run.sh
+
+will execute the shell script.
+
+# A file "test.chunk.bacteria.fasta is available for testing the program and the command line. Type ./run.sh for test #
+
+###########
+# Options #
+###########
+  _________________________________________________________________________________________________________________
+||Option||Default||Description											   |
+||	||	 ||                                                                                                |
+||  -h  ||       ||Displays the help menu. Important: always load the modules (2) in order to get the help menu    |
+||  -V  ||	 ||Shows version and exits	                                      	       	      	           |
+||  -i	||	 ||Input fasta file                                                                                |
+||  -f  ||       ||List of fasta files                                                                             |
+||  -c  ||   4   ||Number of cores                                                                                 |
+||  -v	||  off  ||Verbose                                                                                         |
+||  -l	||STDERR ||Logfile                                                                                         |
+||  -d  ||numeric||Output directory                                                                                |
+||  -t	||  90   ||Minimum nucleotide contig sequence length                                                       |
+||  -e  || 0.001 ||E-value cutoff                                                                                  |
+||  -k  ||  off  ||Keep temporary files                                                                            |
+||______||_______||________________________________________________________________________________________________|
+
+Example (runflow with all settings defined):
+
+$ module load tools torque moab/8.1.1 perl/5.20.1
+
+$ xqsub -V -d /path-to-fasta-contig-file -l nodes=1:ppn=16,mem=50gb,walltime=1:00:00:00 -de /path-to-gene2annot/gene2annot.pl -i file.fasta -v -c 8 -t 100 -e 0.01 -k -l logfile -d workingDir
+
+################
+# Output files #
+################
+
+If -k option is not defined the program will output 4 files:
+
+- diamond.pfams.m8 (tab separated) - Diamond annotated genes (only the best hit per gene) with Pfam accession number at the end of each entry.
+- a log file (user defined) - Contains N50 statistics (Number of Seq, Total length, Shortest Seq, Longest Seq, N50 value), Prodigal command lines, Diamond command lines, Total runtime.
+- pfam.counts file - Contains all of the pfam families found by the program as well as their occurance in decremental order.
+- statistics.log (tab separated) - Number of prodigal genes found, Number of diamond pfam annotations, Number of unannotated genes, Percentage unannotated, Number of annotated genes, Percentage annotated.
+
+Remark: Changing diamond and prodigal options is possible on line 323, 324 and 172, however it is not recommended for unexperienced programmer and we do not guarantee that the program will work afterwards!
+
+#############
+# Databases #
+#############
+
+The following databases are found in "/gene2annot/databases" directory:
+
+# Pfam-A.fasta # Pfam-A.diamond.dmnd # pfam.kch #
+
+- Pfam-A.fasta - the last release of Pfam database.
+- Pfam-A.diamond.dmnd - diamond database (binary).
+- pfam.kch - Kyoto Cabinet database.
+
+Updating a Pfam database is done by the following manner:
+
+1. Download the last release of Pfam database (ftp://ftp.ebi.ac.uk/pub/databases/Pfam/releases).
+
+2. Convert the Pfam database to a diamond binary database:
+In the "gene2annot" directory write:
+
+$ ./bin/diamond-0.7.9/bin/diamond makedb --in ./databases/Pfam-A.fasta -d ./databases/Pfam-A.diamond.dmnd (the input database may be gzip compressed).
+
+3. Convert to Kyoto Cabinet binary database:
+In the "gene2annot" directory write:
+
+$ ./scripts/makePFAM_db.pl -i ./databases/Pfam-A.fasta -o ./databases/pfam.kch
+
+It is possible to view the content of the Kyoto Cabinet database by typing:
+
+$ ./scripts/kch_view.pl -i ./databases/pfam.kch | less
+
+Remark: Names of databases should be kept as they are described above. If a database name is changed, the same has to be done in gene2annot.pl (line 36 - Kyoto, line 323 - diamond).
+
+###########
+# Credits #
+###########
+
+For questions and issues contact Thomas Nordahl Petersen tnp@cbs.dtu.dk
